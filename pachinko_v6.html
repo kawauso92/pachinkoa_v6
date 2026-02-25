@@ -4,7 +4,9 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
 <title>PACHINKO LOG</title>
-<link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@400;600;700&family=Noto+Sans+JP:wght@300;400;500;700&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@600;700&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
 <style>
 :root {
   --bg:#080c10;--surface:#0d1117;--surface2:#141b24;--surface3:#1c2530;
@@ -66,6 +68,13 @@ body::before{content:'';position:fixed;inset:0;background-image:linear-gradient(
 .input-field{background:var(--surface3);border:1px solid var(--border);border-radius:var(--radius-sm);color:var(--text);padding:9px 10px;font-size:16px;font-family:'JetBrains Mono',monospace;font-weight:700;width:100%;outline:none;transition:border-color 0.2s;-webkit-appearance:none;}
 .input-field:focus{border-color:var(--accent);box-shadow:0 0 0 2px rgba(0,212,255,0.1);}
 .input-field::placeholder{color:var(--text3);font-weight:400;}
+/* 手入力 vs 自動計算 視覚区別 */
+.input-label{font-size:9px;color:var(--text3);letter-spacing:1px;margin-bottom:5px;display:flex;align-items:center;gap:5px;}
+.badge-manual{font-size:8px;padding:1px 5px;border-radius:3px;background:rgba(0,212,255,0.15);color:var(--accent);border:1px solid rgba(0,212,255,0.3);letter-spacing:0;font-family:'JetBrains Mono',monospace;}
+.badge-auto{font-size:8px;padding:1px 5px;border-radius:3px;background:rgba(57,255,110,0.12);color:var(--green);border:1px solid rgba(57,255,110,0.3);letter-spacing:0;font-family:'JetBrains Mono',monospace;}
+.input-field.is-manual{border-color:rgba(0,212,255,0.35);}
+.input-field.is-manual:focus{border-color:var(--accent);box-shadow:0 0 0 2px rgba(0,212,255,0.15);}
+.auto-display{background:rgba(57,255,110,0.05);border:1px solid rgba(57,255,110,0.2);border-radius:var(--radius-sm);padding:9px 10px;font-size:16px;font-family:'JetBrains Mono',monospace;font-weight:700;color:var(--green);width:100%;}
 select.input-field{cursor:pointer;appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%238899aa' stroke-width='1.5' fill='none'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 10px center;padding-right:28px;}
 .cur-wrap{position:relative;}
 .cur-wrap .cur{position:absolute;left:10px;top:50%;transform:translateY(-50%);color:var(--text2);font-family:'JetBrains Mono',monospace;font-size:13px;pointer-events:none;}
@@ -232,18 +241,18 @@ select.input-field{cursor:pointer;appearance:none;background-image:url("data:ima
     <div class="section">
       <div class="section-header"><div class="section-label">回転数</div><div class="section-line"></div></div>
       <div class="rotation-display">
-        <div><div class="rot-val" id="disp-total-rot">—</div><div class="rot-label">総回転</div></div>
-        <div><div class="rot-val" id="disp-normal-rot">—</div><div class="rot-label">通常回転</div></div>
-        <div><div class="rot-val" id="disp-rot-rate">—</div><div class="rot-label">回転率</div></div>
+        <div><div class="rot-val" id="disp-total-rot">—</div><div class="rot-label">総回転 <span class="badge-auto">AUTO</span></div></div>
+        <div><div class="rot-val" id="disp-normal-rot">—</div><div class="rot-label">通常回転 <span class="badge-auto">AUTO</span></div></div>
+        <div><div class="rot-val" id="disp-rot-rate">—</div><div class="rot-label">回転率 <span class="badge-auto">AUTO</span></div></div>
       </div>
       <div class="input-grid">
         <div class="input-group">
-          <div class="input-label">開始回転</div>
-          <input class="input-field" type="number" inputmode="numeric" placeholder="0" id="in-rot-start" oninput="recalc();save()">
+          <div class="input-label">開始回転 <span class="badge-manual">入力</span></div>
+          <input class="input-field is-manual" type="number" inputmode="numeric" placeholder="0" id="in-rot-start" oninput="recalc();save()">
         </div>
         <div class="input-group">
-          <div class="input-label">終了回転</div>
-          <input class="input-field" type="number" inputmode="numeric" placeholder="0" id="in-rot-end" oninput="recalc();save()">
+          <div class="input-label">終了回転 <span class="badge-manual">入力</span></div>
+          <input class="input-field is-manual" type="number" inputmode="numeric" placeholder="0" id="in-rot-end" oninput="recalc();save()">
         </div>
       </div>
     </div>
@@ -252,25 +261,25 @@ select.input-field{cursor:pointer;appearance:none;background-image:url("data:ima
       <div class="section-header"><div class="section-label">収支入力</div><div class="section-line"></div></div>
       <div class="input-grid">
         <div class="input-group">
-          <div class="input-label">開始時間</div>
-          <input class="input-field" type="time" id="in-time-start" oninput="recalc();save()">
+          <div class="input-label">開始時間 <span class="badge-manual">入力</span></div>
+          <input class="input-field is-manual" type="time" id="in-time-start" oninput="recalc();save()">
         </div>
         <div class="input-group">
-          <div class="input-label">終了時間</div>
-          <input class="input-field" type="time" id="in-time-end" oninput="recalc();save()">
+          <div class="input-label">終了時間 <span class="badge-manual">入力</span></div>
+          <input class="input-field is-manual" type="time" id="in-time-end" oninput="recalc();save()">
         </div>
         <div class="input-group">
-          <div class="input-label">投資金額</div>
+          <div class="input-label">投資金額 <span class="badge-manual">入力</span></div>
           <div class="cur-wrap"><span class="cur">¥</span>
-          <input class="input-field" type="number" inputmode="numeric" placeholder="0" id="in-invest" oninput="recalc();save()"></div>
+          <input class="input-field is-manual" type="number" inputmode="numeric" placeholder="0" id="in-invest" oninput="recalc();save()"></div>
         </div>
         <div class="input-group">
-          <div class="input-label">投資玉数</div>
-          <input class="input-field" type="number" inputmode="numeric" placeholder="0" id="in-invest-ball" oninput="recalc();save()">
+          <div class="input-label">投資玉数 <span class="badge-manual">入力</span></div>
+          <input class="input-field is-manual" type="number" inputmode="numeric" placeholder="0" id="in-invest-ball" oninput="recalc();save()">
         </div>
         <div class="input-group">
-          <div class="input-label">回収玉数</div>
-          <input class="input-field" type="number" inputmode="numeric" placeholder="0" id="in-recover" oninput="recalc();save()">
+          <div class="input-label">回収玉数 <span class="badge-manual">入力</span></div>
+          <input class="input-field is-manual" type="number" inputmode="numeric" placeholder="0" id="in-recover" oninput="recalc();save()">
         </div>
       </div>
     </div>
@@ -289,12 +298,12 @@ select.input-field{cursor:pointer;appearance:none;background-image:url("data:ima
       <div class="section-header"><div class="section-label">当たりサマリー</div><div class="section-line"></div></div>
       <div class="input-grid" style="margin-bottom:12px;">
         <div class="input-group">
-          <div class="input-label">開始当たり数</div>
-          <input class="input-field" type="number" inputmode="numeric" placeholder="0" id="in-hit-start" value="0" oninput="recalc();save()">
+          <div class="input-label">開始当たり数 <span class="badge-manual">入力</span></div>
+          <input class="input-field is-manual" type="number" inputmode="numeric" placeholder="0" id="in-hit-start" value="0" oninput="recalc();save()">
         </div>
         <div class="input-group">
-          <div class="input-label">出玉なし当たり</div>
-          <input class="input-field" type="number" inputmode="numeric" placeholder="0" id="in-hit-nodama" value="0" oninput="recalc();save()">
+          <div class="input-label">出玉なし当たり <span class="badge-manual">入力</span></div>
+          <input class="input-field is-manual" type="number" inputmode="numeric" placeholder="0" id="in-hit-nodama" value="0" oninput="recalc();save()">
         </div>
       </div>
       <div class="summary-row">
@@ -467,12 +476,12 @@ select.input-field{cursor:pointer;appearance:none;background-image:url("data:ima
     <div class="modal-subtitle" id="modal-subtitle">機種を選択してください</div>
     <div class="round-input-grid" id="round-input-grid"></div>
     <div class="auto-calc-row">
-      <div class="auto-calc-label">ラウンドから計算した出玉目安</div>
+      <div class="auto-calc-label">ラウンドから計算した出玉目安 <span class="badge-auto">AUTO</span></div>
       <div class="auto-calc-val" id="modal-auto-balls">0玉</div>
     </div>
     <div class="input-group" style="margin-bottom:14px;">
-      <div class="input-label">合計出玉（実際の値で上書き可）</div>
-      <input class="input-field" type="number" inputmode="numeric" placeholder="0" id="modal-balls">
+      <div class="input-label">合計出玉（実際の値で上書き可） <span class="badge-manual">入力</span></div>
+      <input class="input-field is-manual" type="number" inputmode="numeric" placeholder="0" id="modal-balls">
     </div>
     <button class="modal-confirm-btn" id="modal-confirm-btn">確定</button>
   </div>
@@ -967,7 +976,7 @@ function recalc() {
   }
   const shigotoJikyu = (shigoto !== null && kadoH && kadoH > 0) ? shigoto / kadoH : null;
 
-  // 運(%)
+  // 運(%) = 実出玉ラウンド ÷ 期待ラウンド × 100
   const un = (soRounds > 0 && normalKaiten > 0)
     ? (soRounds / (normalKaiten / k.total1R)) * 100
     : null;
@@ -1198,6 +1207,10 @@ async function doSend() {
           un:          un !== null ? Math.round(un) : '',
           sagitama:    Math.round(sagitama),
           hoshu:       hoshu,
+          soRounds:    soRounds || 0,
+          todayHits:   todayHits || 0,
+          hitBalls:    Math.round(hitBalls || 0),
+          jitsu1R:     soRounds > 0 ? parseFloat((hitBalls / soRounds).toFixed(1)) : '',
         };
 
         const res = await fetch(GAS_URL, {
@@ -1344,7 +1357,8 @@ function save() {
       nodama:   document.getElementById('in-hit-nodama').value,
       date:     document.getElementById('in-date').value,
       daiban:   document.getElementById('in-daiban').value,
-      shop:     S.shop ? S.shop.name : null,
+      shop:     S.shop  ? S.shop.name  : null,
+      kishu:    S.kishu ? S.kishu.name : null,
       uchi:     document.querySelector('#uchi-chips .chip.selected')?.textContent || '自分',
       hits:     S.hits,
       ratio:    S.ratio,
