@@ -527,18 +527,43 @@ window.addEventListener('DOMContentLoaded', async () => {
   document.getElementById('in-date').value =
     t.getFullYear()+'-'+String(t.getMonth()+1).padStart(2,'0')+'-'+String(t.getDate()).padStart(2,'0');
 
-  showLoading(true);
-  await loadMasters();
-  showLoading(false);
-
-  buildShops();
-  buildKishuSelect();
-  buildUchiChips();
-  loadThresholds();
-  bindEvents();
-  loadData();
-  updateGuard();
-  recalc();
+  // キャッシュがあれば即座に表示
+  const cache = localStorage.getItem('masters_cache');
+  if (cache) {
+    try {
+      const d = JSON.parse(cache);
+      SHOPS = d.shops  || [];
+      KISHU = d.kishus || [];
+      UCHI  = d.uchis  || [{name:'自分',type:'owner'}];
+      buildShops();
+      buildKishuSelect();
+      buildUchiChips();
+      loadThresholds();
+      bindEvents();
+      loadData();
+      updateGuard();
+      recalc();
+    } catch(e) {}
+    // バックグラウンドで最新取得
+    loadMasters().then(() => {
+      buildShops();
+      buildKishuSelect();
+      buildUchiChips();
+    });
+  } else {
+    // キャッシュなし→通常ロード
+    showLoading(true);
+    await loadMasters();
+    showLoading(false);
+    buildShops();
+    buildKishuSelect();
+    buildUchiChips();
+    loadThresholds();
+    bindEvents();
+    loadData();
+    updateGuard();
+    recalc();
+  }
 });
 
 // =============================================
