@@ -149,16 +149,7 @@ select.input-field{cursor:pointer;appearance:none;background-image:url("data:ima
 .action-btn{width:100%;border-radius:var(--radius);padding:15px;font-size:15px;font-family:'Rajdhani',sans-serif;font-weight:700;letter-spacing:3px;cursor:pointer;margin-top:10px;text-transform:uppercase;}
 .action-btn.send{background:linear-gradient(135deg,rgba(0,212,255,0.2),rgba(0,212,255,0.05));border:1px solid rgba(0,212,255,0.4);color:var(--accent);box-shadow:0 0 20px rgba(0,212,255,0.1);}
 .action-btn.reset{background:rgba(255,68,102,0.08);border:1px solid rgba(255,68,102,0.3);color:var(--red);}
-.action-btn.hoshu{background:rgba(255,107,255,0.08);border:1px solid rgba(255,107,255,0.35);color:var(--magenta);}
-/* 報酬確定結果パネル */
-.hoshu-result{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:14px;margin-top:10px;display:none;}
-.hoshu-result.show{display:block;}
-.hoshu-result-title{font-family:'Rajdhani',sans-serif;font-size:12px;letter-spacing:2px;color:var(--text2);margin-bottom:10px;}
-.hoshu-row{display:flex;justify-content:space-between;align-items:center;padding:6px 0;border-bottom:1px solid var(--border);font-size:12px;}
-.hoshu-row:last-child{border-bottom:none;}
-.hoshu-uchi{color:var(--text);}
-.hoshu-vals{font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--text2);text-align:right;}
-.hoshu-yen{font-family:'JetBrains Mono',monospace;font-size:14px;font-weight:700;color:var(--magenta);}
+/* 報酬確定ボタン・結果パネルはAppBに移動したため削除 */
 
 /* Guard */
 .guard{display:none;flex-direction:column;align-items:center;justify-content:center;padding:50px 20px;text-align:center;gap:12px;cursor:pointer;}
@@ -471,12 +462,6 @@ select.input-field{cursor:pointer;appearance:none;background-image:url("data:ima
   </div>
   <button class="action-btn send" id="send-btn">📤 記録送信</button>
   <button class="action-btn reset" id="reset-btn">🗑️ データリセット</button>
-  <button class="action-btn hoshu" id="hoshu-confirm-btn">💰 報酬確定</button>
-  <div style="font-size:10px;color:var(--text3);text-align:center;margin-top:4px;font-family:'JetBrains Mono',monospace;letter-spacing:1px;">※ 全データ送信完了後に押してください</div>
-  <div class="hoshu-result" id="hoshu-result">
-    <div class="hoshu-result-title">REWARD SUMMARY</div>
-    <div id="hoshu-result-body"></div>
-  </div>
   <div class="section" style="margin-top:10px;">
     <div class="section-header"><div class="section-label">期待時給 カラー設定</div><div class="section-line"></div></div>
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
@@ -732,9 +717,8 @@ function bindEvents() {
   document.getElementById('rp-0').onclick   = () => setRatio(0);
 
   // 送信・リセット・報酬確定
-  document.getElementById('send-btn').onclick          = doSend;
-  document.getElementById('reset-btn').onclick         = doReset;
-  document.getElementById('hoshu-confirm-btn').onclick = doHoshuConfirm;
+  document.getElementById('send-btn').onclick  = doSend;
+  document.getElementById('reset-btn').onclick = doReset;
 }
 
 // =============================================
@@ -1324,7 +1308,7 @@ async function doSend() {
           border:      parseFloat(border.toFixed(2)),
           un:          un !== null ? Math.round(un) : '',
           sagitama:    Math.round(sagitama),
-          hoshu:       hoshu,
+          kariHoshu:   hoshu,  // 仮報酬（U列）として送信。P列の確定報酬はAppBの報酬確定ボタンで記入
           soRounds:    soRounds || 0,
           todayHits:   todayHits || 0,
           hitBalls:    Math.round(hitBalls || 0),
@@ -1527,71 +1511,6 @@ function loadData() {
     }
     updateHeader();
   } catch(e) {}
-}
-
-// =============================================
-// 報酬確定（GASから当日データを取得して打ち手別に計算）
-// =============================================
-async function doHoshuConfirm() {
-  const date = document.getElementById('in-date').value;
-  if (!date) {
-    alert('日付が設定されていません。設定タブで日付を選択してください。');
-    return;
-  }
-
-  const btn = document.getElementById('hoshu-confirm-btn');
-  btn.textContent = '⏳ 取得中...';
-  btn.disabled = true;
-
-  try {
-    // GASから当日データを問い合わせ
-    const res = await fetch(GAS_URL + '?action=masters', { redirect: 'follow' });
-    // mastersではなく records を取得（当日分フィルタはJS側で行う）
-    const res2 = await fetch(GAS_URL + '?action=init&limit=200', { redirect: 'follow' });
-    const data = await res2.json();
-
-    if (!data.success) throw new Error('データ取得失敗');
-
-    const todayRecs = (data.records || []).filter(r => r.date === date);
-
-    if (!todayRecs.length) {
-      document.getElementById('hoshu-result-body').innerHTML =
-        '<div style="color:var(--text2);font-size:12px;padding:6px 0;">当日の記録が見つかりませんでした</div>';
-      document.getElementById('hoshu-result').classList.add('show');
-      return;
-    }
-
-    // 打ち手別に当日全台の差玉を集計
-    const byUchi = {};
-    todayRecs.forEach(r => {
-      const uchi = r.uchi || '自分';
-      if (!byUchi[uchi]) byUchi[uchi] = { sagitama: 0, count: 0 };
-      byUchi[uchi].sagitama += (r.sagitama || 0);
-      byUchi[uchi].count++;
-    });
-
-    // 既存の calcHoshuLocal ロジックを流用して報酬計算
-    const rows = Object.entries(byUchi).map(([uchi, d]) => {
-      const hoshu = calcHoshuLocal(d.sagitama);
-      const pos   = d.sagitama >= 0;
-      return `<div class="hoshu-row">
-        <div>
-          <div class="hoshu-uchi">${uchi}</div>
-          <div class="hoshu-vals">差玉 ${(pos?'+':'')}${Math.round(d.sagitama).toLocaleString('ja-JP')}玉　${d.count}台</div>
-        </div>
-        <div class="hoshu-yen">${hoshu > 0 ? '¥'+hoshu.toLocaleString('ja-JP') : '—'}</div>
-      </div>`;
-    }).join('');
-
-    document.getElementById('hoshu-result-body').innerHTML = rows;
-    document.getElementById('hoshu-result').classList.add('show');
-
-  } catch(e) {
-    alert('データ取得に失敗しました。通信状態を確認してください。');
-  } finally {
-    btn.textContent = '💰 報酬確定';
-    btn.disabled = false;
-  }
 }
 
 // =============================================
