@@ -161,6 +161,27 @@ select.input-field{cursor:pointer;appearance:none;background-image:url("data:ima
 .save-indicator{position:fixed;top:70px;right:16px;background:rgba(57,255,110,0.15);border:1px solid rgba(57,255,110,0.3);border-radius:6px;padding:4px 10px;font-size:10px;color:var(--green);font-family:'JetBrains Mono',monospace;opacity:0;transition:opacity 0.3s;z-index:150;pointer-events:none;}
 .save-indicator.show{opacity:1;}
 
+/* スケルトンUI */
+@keyframes skeleton-wave {
+  0%{background-position:200% center}
+  100%{background-position:-200% center}
+}
+.skeleton{
+  background:linear-gradient(90deg,var(--surface2) 25%,var(--surface3) 50%,var(--surface2) 75%);
+  background-size:200% 100%;
+  animation:skeleton-wave 1.5s ease infinite;
+  border-radius:var(--radius-sm);
+}
+.sk-kpi-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:10px;}
+.sk-kpi-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-sm);padding:10px 12px;}
+.sk-label{height:10px;width:60%;margin-bottom:8px;}
+.sk-value{height:22px;width:80%;}
+.sk-value-wide{height:30px;width:90%;}
+.sk-section{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:14px;margin-bottom:10px;}
+.sk-section-header{height:10px;width:40%;margin-bottom:14px;}
+.sk-row{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px;}
+.sk-input{height:38px;}
+
 /* Bottom Nav */
 .bottom-nav{position:fixed;bottom:0;left:50%;transform:translateX(-50%);width:100%;max-width:430px;background:rgba(13,17,23,0.97);backdrop-filter:blur(20px);border-top:1px solid var(--border);display:flex;z-index:200;}
 .nav-item{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:9px 4px 11px;cursor:pointer;position:relative;}
@@ -567,18 +588,61 @@ window.addEventListener('DOMContentLoaded', async () => {
 });
 
 // =============================================
-// ローディング表示
+// スケルトンUI表示（キャッシュなし初回ロード時）
 // =============================================
 function showLoading(show) {
-  let el = document.getElementById('loading-overlay');
-  if (!el) {
-    el = document.createElement('div');
-    el.id = 'loading-overlay';
-    el.style.cssText = 'position:fixed;inset:0;background:rgba(8,12,16,0.9);z-index:500;display:flex;align-items:center;justify-content:center;flex-direction:column;gap:12px;';
-    el.innerHTML = '<div style="font-family:Rajdhani,sans-serif;font-size:14px;letter-spacing:3px;color:var(--accent);">LOADING...</div>';
-    document.body.appendChild(el);
+  let el = document.getElementById('skeleton-overlay');
+  if (show) {
+    if (!el) {
+      el = document.createElement('div');
+      el.id = 'skeleton-overlay';
+      // メインタブのKPIカード・セクションをスケルトンで模倣
+      el.innerHTML = `
+        <div style="padding:14px 14px 0;">
+          <!-- 収支+時給スケルトン -->
+          <div class="sk-kpi-grid" style="margin-bottom:10px;">
+            <div class="sk-kpi-card" style="grid-column:1/-1;">
+              <div class="sk-row">
+                <div><div class="skeleton sk-label"></div><div class="skeleton sk-value-wide"></div></div>
+                <div><div class="skeleton sk-label"></div><div class="skeleton sk-value-wide"></div></div>
+              </div>
+            </div>
+            <div class="sk-kpi-card" style="grid-column:1/-1;padding:14px;">
+              <div class="skeleton sk-label"></div>
+              <div class="skeleton" style="height:32px;width:70%;margin-top:6px;"></div>
+            </div>
+            <div class="sk-kpi-card"><div class="skeleton sk-label"></div><div class="skeleton sk-value"></div></div>
+            <div class="sk-kpi-card"><div class="skeleton sk-label"></div><div class="skeleton sk-value"></div></div>
+          </div>
+          <!-- 回転数セクションスケルトン -->
+          <div class="sk-section">
+            <div class="skeleton sk-section-header"></div>
+            <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;margin-bottom:12px;">
+              <div><div class="skeleton" style="height:24px;margin-bottom:4px;"></div><div class="skeleton" style="height:10px;width:70%;"></div></div>
+              <div><div class="skeleton" style="height:24px;margin-bottom:4px;"></div><div class="skeleton" style="height:10px;width:70%;"></div></div>
+              <div><div class="skeleton" style="height:24px;margin-bottom:4px;"></div><div class="skeleton" style="height:10px;width:70%;"></div></div>
+            </div>
+            <div class="sk-row"><div class="skeleton sk-input"></div><div class="skeleton sk-input"></div></div>
+          </div>
+          <!-- 収支入力セクションスケルトン -->
+          <div class="sk-section">
+            <div class="skeleton sk-section-header"></div>
+            <div class="sk-row"><div class="skeleton sk-input"></div><div class="skeleton sk-input"></div></div>
+            <div class="sk-row"><div class="skeleton sk-input"></div><div class="skeleton sk-input"></div></div>
+            <div class="skeleton sk-input" style="margin-top:8px;"></div>
+          </div>
+        </div>`;
+      document.getElementById('tab-main').appendChild(el);
+    }
+    el.style.display = 'block';
+    // ガードを非表示にしてスケルトンを見せる
+    document.getElementById('guard-main').style.display = 'none';
+    document.getElementById('main-body').style.display = 'none';
+  } else {
+    if (el) el.style.display = 'none';
+    // ガード表示を通常フローに戻す
+    document.getElementById('guard-main').style.display = '';
   }
-  el.style.display = show ? 'flex' : 'none';
 }
 
 // =============================================
