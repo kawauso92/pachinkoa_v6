@@ -11,7 +11,7 @@
 :root {
   --bg:#080c10;--surface:#0d1117;--surface2:#141b24;--surface3:#1c2530;
   --border:#1e2d3d;--accent:#00d4ff;--green:#39ff6e;--warn:#ffcc00;
-  --red:#ff4466;--text:#e2e8f0;--text2:#8899aa;--text3:#4a5a6a;
+  --red:#ff4466;--text:#e2e8f0;--text2:#8899aa;--text3:#607080;
   --radius:12px;--radius-sm:8px;
 }
 *{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
@@ -50,7 +50,7 @@ body::before{content:'';position:fixed;inset:0;background-image:linear-gradient(
 .kpi-value.neg{color:var(--red);}
 .kpi-value.info{color:var(--accent);}
 .kpi-value.warn{color:var(--warn);}
-.kpi-sub{font-size:9px;color:var(--text3);margin-top:3px;font-family:'JetBrains Mono',monospace;}
+.kpi-sub{font-size:9px;color:var(--text2);margin-top:3px;font-family:'JetBrains Mono',monospace;}
 
 /* Wide KPI card (収支+時給) */
 .kpi-wide{grid-column:1/-1;display:grid;grid-template-columns:1fr 1fr;gap:0;}
@@ -69,7 +69,7 @@ body::before{content:'';position:fixed;inset:0;background-image:linear-gradient(
 .input-field:focus{border-color:var(--accent);box-shadow:0 0 0 2px rgba(0,212,255,0.1);}
 .input-field::placeholder{color:var(--text3);font-weight:400;}
 /* 手入力 vs 自動計算 視覚区別 */
-.input-label{font-size:9px;color:var(--text3);letter-spacing:1px;margin-bottom:5px;display:flex;align-items:center;gap:5px;}
+.input-label{font-size:9px;color:var(--text2);letter-spacing:1px;margin-bottom:5px;display:flex;align-items:center;gap:5px;}
 .badge-manual{font-size:8px;padding:1px 5px;border-radius:3px;background:rgba(0,212,255,0.15);color:var(--accent);border:1px solid rgba(0,212,255,0.3);letter-spacing:0;font-family:'JetBrains Mono',monospace;}
 .badge-auto{font-size:8px;padding:1px 5px;border-radius:3px;background:rgba(57,255,110,0.12);color:var(--green);border:1px solid rgba(57,255,110,0.3);letter-spacing:0;font-family:'JetBrains Mono',monospace;}
 .input-field.is-manual{border-color:rgba(0,212,255,0.35);}
@@ -260,7 +260,7 @@ select.input-field{cursor:pointer;appearance:none;background-image:url("data:ima
       </div>
     </div>
 
-    <div class="section">
+    <div class="section" id="section-rotation">
       <div class="section-header"><div class="section-label">回転数</div><div class="section-line"></div></div>
       <div class="rotation-display">
         <div><div class="rot-val" id="disp-total-rot">—</div><div class="rot-label">総回転 <span class="badge-auto">AUTO</span></div></div>
@@ -282,11 +282,11 @@ select.input-field{cursor:pointer;appearance:none;background-image:url("data:ima
     <div class="section">
       <div class="section-header"><div class="section-label">収支入力</div><div class="section-line"></div></div>
       <div class="input-grid">
-        <div class="input-group">
+        <div class="input-group" id="time-start-group">
           <div class="input-label">開始時間 <span class="badge-manual">入力</span></div>
           <input class="input-field is-manual" type="time" id="in-time-start" oninput="recalc();save()">
         </div>
-        <div class="input-group">
+        <div class="input-group" id="time-end-group">
           <div class="input-label">終了時間 <span class="badge-manual">入力</span></div>
           <input class="input-field is-manual" type="time" id="in-time-end" oninput="recalc();save()">
         </div>
@@ -412,6 +412,10 @@ select.input-field{cursor:pointer;appearance:none;background-image:url("data:ima
 
   <div class="section">
     <div class="section-header"><div class="section-label">機種スペック</div><div class="section-line"></div></div>
+    <div class="summary-row">
+      <span class="lbl">メーカー</span>
+      <span class="val" id="disp-spec-maker">—</span>
+    </div>
     <div class="summary-row">
       <span class="lbl">平均出玉</span>
       <span class="val" id="disp-spec-heikin">—</span>
@@ -799,8 +803,22 @@ function onKishuChange() {
   S.kishu = KISHU.find(k=>k.name===name) || null;
   updateHeader();
   updateGuard();
+  updateTrialMode();
   recalc();
   save();
+}
+
+// =============================================
+// 試しうちモード：回転数・時間入力欄を非表示
+// =============================================
+function updateTrialMode() {
+  const isTrial = S.kishu && S.kishu.name === '試しうち';
+  const rotEl   = document.getElementById('section-rotation');
+  const tsEl    = document.getElementById('time-start-group');
+  const teEl    = document.getElementById('time-end-group');
+  if (rotEl) rotEl.style.display = isTrial ? 'none' : '';
+  if (tsEl)  tsEl.style.display  = isTrial ? 'none' : '';
+  if (teEl)  teEl.style.display  = isTrial ? 'none' : '';
 }
 
 // =============================================
@@ -1045,9 +1063,12 @@ function recalc() {
   // データ表示当たり数
   const dataHitCount = hitStart + todayHits + nodama;
 
-  // 回転率
+  // 試しうちモードフラグ
+  const isTrial = k.name === '試しうち';
+
+  // 回転率（試しうちは計算しない）
   let kaitenRitsu = null;
-  if (normalKaiten > 0) {
+  if (!isTrial && normalKaiten > 0) {
     const totalUsed = soToushi + hitBalls - recover;
     if (totalUsed > 0) kaitenRitsu = normalKaiten / (totalUsed / 250);
   }
@@ -1056,30 +1077,32 @@ function recalc() {
   const heikin = k.heikin + hitDelta;
   const border = k.hatsua / (heikin * k.heiren / 250);
 
-  // 期待時給
+  // 期待時給（試しうちはスキップ）
   let kitaiJikyu = null;
-  if (kaitenRitsu) {
+  if (!isTrial && kaitenRitsu) {
     const kankin = 100 / kokan;
     const zenki  = heikin * k.jikan / k.total * kankin;
     const koki   = 250 * k.jikan / kaitenRitsu * (4*(1-ratio) + ratio*kankin);
     kitaiJikyu = zenki - koki;
   }
 
-  // 仕事量（total1R=0の場合は計算不能→null表示）
+  // 仕事量（試しうちはスキップ、total1R=0の場合は計算不能→null表示）
   let shigoto = null;
-  if (todayHits === 0) {
-    // パターン1：当たりなし
-    if (normalKaiten > 0) shigoto = (normalKaiten / border * 250 * (100/kokan)) + kosshi;
-  } else if (k.total1R > 0 && soRounds > 0) {
-    // パターン2：当たりあり（total1R未設定なら計算しない）
-    const rironR    = normalKaiten / k.total1R;
-    const jitsu1R   = hitBalls / soRounds;
-    shigoto = kosshi - (soRounds - rironR) * jitsu1R * (100/kokan);
+  if (!isTrial) {
+    if (todayHits === 0) {
+      // パターン1：当たりなし
+      if (normalKaiten > 0) shigoto = (normalKaiten / border * 250 * (100/kokan)) + kosshi;
+    } else if (k.total1R > 0 && soRounds > 0) {
+      // パターン2：当たりあり（total1R未設定なら計算しない）
+      const rironR    = normalKaiten / k.total1R;
+      const jitsu1R   = hitBalls / soRounds;
+      shigoto = kosshi - (soRounds - rironR) * jitsu1R * (100/kokan);
+    }
   }
   const shigotoJikyu = (shigoto !== null && kadoH && kadoH > 0) ? shigoto / kadoH : null;
 
-  // 運(%) = 実出玉ラウンド ÷ 期待ラウンド × 100（total1R=0なら計算不能）
-  const un = (soRounds > 0 && normalKaiten > 0 && k.total1R > 0)
+  // 運(%)（試しうちはスキップ）
+  const un = (!isTrial && soRounds > 0 && normalKaiten > 0 && k.total1R > 0)
     ? (soRounds / (normalKaiten / k.total1R)) * 100
     : null;
 
@@ -1187,6 +1210,7 @@ function recalc() {
   setText('disp-spec-heikin', fmtN(Math.round(heikin))+'玉');
   setText('disp-spec-heiren', k.heiren.toFixed(2)+'連');
   setText('disp-spec-total',  k.total.toFixed(2)+'円/千円');
+  setText('disp-spec-maker',  k.maker || '—');
 }
 
 // =============================================
@@ -1212,14 +1236,15 @@ async function doSend() {
   const kokan      = S.shop.kokan;
   const k          = S.kishu;
   const ratio      = S.ratio / 100;
+  const isTrial    = k.name === '試しうち'; // 試しうちモード
 
   // 打ち手取得
   const uchiEl = document.querySelector('#uchi-chips .chip.selected');
   const uchi   = uchiEl ? uchiEl.textContent : '自分';
 
-  // 稼働時間
+  // 稼働時間（試しうちは非表示なので空）
   let kadoH = null, jikanStr = '';
-  if (tStart && tEnd) {
+  if (!isTrial && tStart && tEnd) {
     const [sh,sm] = tStart.split(':').map(Number);
     const [eh,em] = tEnd.split(':').map(Number);
     let m = (eh*60+em) - (sh*60+sm);
@@ -1235,7 +1260,6 @@ async function doSend() {
   const soToushi  = invest/4 + investBall;
   const sagitama  = recover - soToushi;
   const soKaiten  = rotEnd - rotStart;
-  const jikyu     = (kadoH && kadoH > 0) ? kosshi / kadoH : null;
 
   let hitBalls = 0, riron = 0, soRounds = 0, todayHits = 0;
   S.hits.forEach(h => {
@@ -1252,14 +1276,15 @@ async function doSend() {
   const heikin      = k.heikin + hitDelta;
   const border      = k.hatsua / (heikin * k.heiren / 250);
 
+  // 試しうちはkaitenRitsu/kitaiJikyu/shigoto/unをスキップ
   let kaitenRitsu = null;
-  if (soKaiten > 0) {
+  if (!isTrial && soKaiten > 0) {
     const totalUsed = soToushi + hitBalls - recover;
     if (totalUsed > 0) kaitenRitsu = soKaiten / (totalUsed / 250);
   }
 
   let kitaiJikyu = null;
-  if (kaitenRitsu) {
+  if (!isTrial && kaitenRitsu) {
     const kankin = 100 / kokan;
     const zenki  = heikin * k.jikan / k.total * kankin;
     const koki   = 250 * k.jikan / kaitenRitsu * (4*(1-ratio) + ratio*kankin);
@@ -1267,17 +1292,18 @@ async function doSend() {
   }
 
   let shigoto = null;
-  if (todayHits === 0) {
-    if (soKaiten > 0) shigoto = (soKaiten / border * 250 * (100/kokan)) + kosshi;
-  } else if (k.total1R > 0 && soRounds > 0) {
-    // total1R未設定（=0）の場合は計算しない
-    const rironR  = soKaiten / k.total1R;
-    const jitsu1R = hitBalls / soRounds;
-    shigoto       = kosshi - (soRounds - rironR) * jitsu1R * (100/kokan);
+  if (!isTrial) {
+    if (todayHits === 0) {
+      if (soKaiten > 0) shigoto = (soKaiten / border * 250 * (100/kokan)) + kosshi;
+    } else if (k.total1R > 0 && soRounds > 0) {
+      const rironR  = soKaiten / k.total1R;
+      const jitsu1R = hitBalls / soRounds;
+      shigoto       = kosshi - (soRounds - rironR) * jitsu1R * (100/kokan);
+    }
   }
   const shigotoJikyu = (shigoto !== null && kadoH && kadoH > 0) ? shigoto / kadoH : null;
 
-  const un = (soRounds > 0 && soKaiten > 0 && k.total1R > 0)
+  const un = (!isTrial && soRounds > 0 && soKaiten > 0 && k.total1R > 0)
     ? (soRounds / (soKaiten / k.total1R)) * 100 : null;
 
   // 報酬計算（累積差玉ベース）
@@ -1286,8 +1312,11 @@ async function doSend() {
   const hoshu      = uchi !== '自分' ? calcHoshuLocal(ruikeiSagi) : 0;
 
   // 送信確認
+  const confirmMsg = isTrial
+    ? `【送信確認】（試しうち）\n日付：${date}\n店：${S.shop.name}　台番号：${daiban || '未入力'}\n打ち手：${uchi}\n\n収支：${fmt(kosshi)}円\n差玉：${fmtN(Math.round(sagitama))}玉\n\n送信しますか？`
+    : `【送信確認】\n日付：${date}\n店：${S.shop.name}　台番号：${daiban || '未入力'}\n機種：${S.kishu.name}\n打ち手：${uchi}\n\n収支：${fmt(kosshi)}円\n稼働：${jikanStr || '—'}\n仕事量：${shigoto !== null ? fmt(Math.round(shigoto))+'円' : '—'}\n${uchi !== '自分' ? '報酬：¥'+fmtN(hoshu) : ''}\n\n送信しますか？`;
   showConfirm(
-    `【送信確認】\n日付：${date}\n店：${S.shop.name}　台番号：${daiban || '未入力'}\n機種：${S.kishu.name}\n打ち手：${uchi}\n\n収支：${fmt(kosshi)}円\n稼働：${jikanStr || '—'}\n仕事量：${shigoto !== null ? fmt(Math.round(shigoto))+'円' : '—'}\n${uchi !== '自分' ? '報酬：¥'+fmtN(hoshu) : ''}\n\n送信しますか？`,
+    confirmMsg,
     async () => {
       document.getElementById('send-btn').disabled = true;
       document.getElementById('send-btn').textContent = '送信中...';
@@ -1511,6 +1540,7 @@ function loadData() {
       setRatioVal(d.ratio);
     }
     updateHeader();
+    updateTrialMode(); // 試しうちモード復元
   } catch(e) {}
 }
 
