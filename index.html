@@ -1065,21 +1065,21 @@ function recalc() {
     kitaiJikyu = zenki - koki;
   }
 
-  // 仕事量
+  // 仕事量（total1R=0の場合は計算不能→null表示）
   let shigoto = null;
   if (todayHits === 0) {
     // パターン1：当たりなし
     if (normalKaiten > 0) shigoto = (normalKaiten / border * 250 * (100/kokan)) + kosshi;
-  } else {
-    // パターン2：当たりあり
+  } else if (k.total1R > 0 && soRounds > 0) {
+    // パターン2：当たりあり（total1R未設定なら計算しない）
     const rironR    = normalKaiten / k.total1R;
     const jitsu1R   = hitBalls / soRounds;
     shigoto = kosshi - (soRounds - rironR) * jitsu1R * (100/kokan);
   }
   const shigotoJikyu = (shigoto !== null && kadoH && kadoH > 0) ? shigoto / kadoH : null;
 
-  // 運(%) = 実出玉ラウンド ÷ 期待ラウンド × 100
-  const un = (soRounds > 0 && normalKaiten > 0)
+  // 運(%) = 実出玉ラウンド ÷ 期待ラウンド × 100（total1R=0なら計算不能）
+  const un = (soRounds > 0 && normalKaiten > 0 && k.total1R > 0)
     ? (soRounds / (normalKaiten / k.total1R)) * 100
     : null;
 
@@ -1269,14 +1269,15 @@ async function doSend() {
   let shigoto = null;
   if (todayHits === 0) {
     if (soKaiten > 0) shigoto = (soKaiten / border * 250 * (100/kokan)) + kosshi;
-  } else {
+  } else if (k.total1R > 0 && soRounds > 0) {
+    // total1R未設定（=0）の場合は計算しない
     const rironR  = soKaiten / k.total1R;
     const jitsu1R = hitBalls / soRounds;
     shigoto       = kosshi - (soRounds - rironR) * jitsu1R * (100/kokan);
   }
   const shigotoJikyu = (shigoto !== null && kadoH && kadoH > 0) ? shigoto / kadoH : null;
 
-  const un = (soRounds > 0 && soKaiten > 0)
+  const un = (soRounds > 0 && soKaiten > 0 && k.total1R > 0)
     ? (soRounds / (soKaiten / k.total1R)) * 100 : null;
 
   // 報酬計算（累積差玉ベース）
