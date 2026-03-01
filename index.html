@@ -446,7 +446,13 @@ select.input-field{cursor:pointer;appearance:none;background-image:url("data:ima
       </select>
     </div>
     <div class="setting-row">
-      <div class="input-label" style="display:block;margin-bottom:6px;">機種</div>
+      <div style="display:flex;align-items:center;gap:6px;margin-bottom:4px;">
+        <div class="input-label" style="margin-bottom:0;">機種</div>
+        <select id="in-maker-filter" onchange="onMakerFilterChange()"
+          style="flex:1;background:var(--surface3);border:1px solid var(--border);border-radius:var(--radius-sm);color:var(--text2);padding:4px 28px 4px 8px;font-size:10px;font-family:'JetBrains Mono',monospace;outline:none;appearance:none;background-image:url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'%3E%3Cpath d='M1 1l4 4 4-4' stroke='%238899aa' stroke-width='1.5' fill='none'/%3E%3C/svg%3E\");background-repeat:no-repeat;background-position:right 8px center;">
+          <option value="">全メーカー</option>
+        </select>
+      </div>
       <select class="input-field" id="in-kishu" onchange="onKishuChange()">
         <option value="">選択してください</option>
       </select>
@@ -787,17 +793,56 @@ function onShopChange() {
 }
 
 // =============================================
-// 機種セレクト
+// 機種セレクト（メーカーフィルタ付き）
 // =============================================
 function buildKishuSelect() {
-  const sel = document.getElementById('in-kishu');
-  KISHU.forEach(k => {
+  // ① メーカーフィルタ選択肢を再構築（現在値を保持）
+  const makerSel = document.getElementById('in-maker-filter');
+  if (makerSel) {
+    const makers = [...new Set(KISHU.map(k => k.maker || '').filter(Boolean))].sort();
+    const prevMaker = makerSel.value;
+    makerSel.innerHTML = '<option value="">全メーカー</option>' +
+      makers.map(m => `<option value="${m}"${m === prevMaker ? ' selected' : ''}>${m}</option>`).join('');
+  }
+
+  // ② 機種リスト（メーカーフィルタ適用）を再構築（現在値を保持）
+  const makerFilter = makerSel ? makerSel.value : '';
+  const filtered    = makerFilter ? KISHU.filter(k => k.maker === makerFilter) : KISHU;
+  const sel         = document.getElementById('in-kishu');
+  const prevKishu   = sel.value;
+  sel.innerHTML = '<option value="">選択してください</option>';
+  filtered.forEach(k => {
     const o = document.createElement('option');
     o.value = k.name;
     o.textContent = k.name;
     sel.appendChild(o);
   });
+  // フィルタ後もリストに存在するなら選択を復元
+  if (prevKishu && filtered.some(k => k.name === prevKishu)) sel.value = prevKishu;
 }
+
+function onMakerFilterChange() {
+  // メーカー切替 → 機種リスト再構築 + 機種選択リセット
+  const makerSel   = document.getElementById('in-maker-filter');
+  const makerFilter = makerSel ? makerSel.value : '';
+  const filtered    = makerFilter ? KISHU.filter(k => k.maker === makerFilter) : KISHU;
+  const sel         = document.getElementById('in-kishu');
+  sel.innerHTML = '<option value="">選択してください</option>';
+  filtered.forEach(k => {
+    const o = document.createElement('option');
+    o.value = k.name;
+    o.textContent = k.name;
+    sel.appendChild(o);
+  });
+  // 機種選択をリセット
+  S.kishu = null;
+  sel.value = '';
+  updateHeader();
+  updateGuard();
+  updateTrialMode();
+  recalc();
+}
+
 function onKishuChange() {
   const name = document.getElementById('in-kishu').value;
   S.kishu = KISHU.find(k=>k.name===name) || null;
