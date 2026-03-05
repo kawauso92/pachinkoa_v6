@@ -254,7 +254,7 @@ select.input-field{cursor:pointer;appearance:none;background-image:url("data:ima
           <div style="padding:4px 0 4px 8px;">
             <div class="kpi-label">報酬（自動計算）</div>
             <div class="kpi-value pos" id="kpi-hoshu">¥0</div>
-            <div class="kpi-sub" id="kpi-hoshu-sub">5,000玉ごとに¥5,000</div>
+            <div class="kpi-sub" id="kpi-hoshu-sub">5,000玉ごと（単価は期待時給で判定）</div>
           </div>
         </div>
       </div>
@@ -1240,11 +1240,12 @@ function recalc() {
     ruikeiCard.style.display = '';
     const prevSagi    = getRuikeiSagitama(uchi, date);
     const ruikeiSagi  = prevSagi + Math.round(sagitama);
-    const hoshu       = calcHoshuLocal(ruikeiSagi);
+    const hoshu       = calcHoshuLocal(ruikeiSagi, kitaiJikyu);
+    const tankaLabel  = (kitaiJikyu >= 2000) ? '×5千' : '×3千';
     const sagiClass   = ruikeiSagi >= 0 ? 'pos' : 'neg';
     el('kpi-ruikei-sagitama', fmtN(Math.round(ruikeiSagi))+'玉', 'kpi-value '+sagiClass);
     document.getElementById('kpi-ruikei-sub').textContent = '前台引継: '+fmtN(Math.round(prevSagi))+'玉';
-    el('kpi-hoshu', '¥'+fmtN(hoshu), 'kpi-value pos');
+    el('kpi-hoshu', '¥'+fmtN(hoshu)+' '+tankaLabel, 'kpi-value pos');
     document.getElementById('kpi-hoshu-sub').textContent =
       ruikeiSagi >= 5000 ? '✅ 支払い対象' : '残り '+ fmtN(5000 - Math.max(0, ruikeiSagi % 5000))+'玉';
   } else {
@@ -1354,7 +1355,7 @@ async function doSend() {
   // 報酬計算（累積差玉ベース）
   const prevSagi   = getRuikeiSagitama(uchi, date);
   const ruikeiSagi = prevSagi + Math.round(sagitama);
-  const hoshu      = uchi !== '自分' ? calcHoshuLocal(ruikeiSagi) : 0;
+  const hoshu      = uchi !== '自分' ? calcHoshuLocal(ruikeiSagi, kitaiJikyu) : 0;
 
   // 送信確認
   const confirmMsg = isTrial
@@ -1456,9 +1457,11 @@ function addRuikeiSagitama(uchi, date, sagitama) {
   const prev = getRuikeiSagitama(uchi, date);
   localStorage.setItem(key, prev + sagitama);
 }
-function calcHoshuLocal(ruikeiSagitama) {
+function calcHoshuLocal(ruikeiSagitama, kitaiJikyu) {
   if (ruikeiSagitama < 5000) return 0;
-  return Math.floor(ruikeiSagitama / 5000) * 5000;
+  const tanka = (kitaiJikyu >= 2000) ? 5000 : 3000;
+  const steps = Math.floor(ruikeiSagitama / 5000);
+  return steps * tanka;
 }
 
 // =============================================
